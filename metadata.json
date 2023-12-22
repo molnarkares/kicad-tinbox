@@ -1,0 +1,25 @@
+{
+    "$schema": "https://go.kicad.org/pcm/schemas/v1",
+    "name": "Tinbox",
+    "description": "Generates PCB for tin boxes",
+    "description_full": "Generates PCB that fits in tin boxes",
+    "identifier": "com.github.molnarkares.kicad-tinbox",
+    "type": "plugin",
+    "author": {
+        "name": "Karoly Molnar",
+        "contact": {
+            "web": "https://github.com/molnarkares"
+        }
+    },
+    "license": "Apache",
+    "resources": {
+        "homepage": "https://github.com/molnarkares/kicad-tinbox"
+    },
+    "versions": [
+        {
+            "version": "1.0",
+            "status": "testing",
+            "kicad_version": "7.0"
+        }
+    ]
+}
