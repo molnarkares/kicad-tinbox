@@ -31,12 +31,13 @@ class TinboxDialog(wx.Dialog):
         self.layout.Add(self.image_ctrl, pos=(0, 0), span=(1, 3), flag=wx.ALL | wx.CENTER, border=5)
 
         # Get the default units
-        unit_label = _get_default_units()
+        self.unit_label = _get_default_units()
         # Create input fields
-        self.width_txt = self.create_input_field("Width:", 1, unit_label)
-        self.length_txt = self.create_input_field("Length:", 2, unit_label)
-        self.diagonal_txt = self.create_input_field("Diagonal:", 3, unit_label)
-        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 4, unit_label)
+        self.width_txt = self.create_input_field("Width:", 1, self.unit_label)
+        self.length_txt = self.create_input_field("Length:", 2, self.unit_label)
+        self.diagonal_txt = self.create_input_field("Diagonal:", 3, self.unit_label)
+        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 4,
+                                                         "thou" if self.unit_label != "mm" else self.unit_label)
 
         # Generate Button
         self.generate_btn = wx.Button(self.panel, label="Generate")
@@ -65,6 +66,11 @@ class TinboxDialog(wx.Dialog):
             length = float(self.length_txt.GetValue())
             diagonal = float(self.diagonal_txt.GetValue())
             mounting_hole = float(self.mounting_hole_txt.GetValue())
+            if self.unit_label != "mm":
+                width = width * 25.4
+                length = length * 25.4
+                diagonal = diagonal * 25.4
+                mounting_hole = mounting_hole * 0.0254
 
             pcb_generator = PcbGenerator()
 
