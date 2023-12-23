@@ -7,27 +7,35 @@ class PcbGenerator:
     def __init__(self):
         self.board = pcbnew.GetBoard()
 
-    class GenerateRetCodes(Enum):
+    class GeneratorRetCodes(Enum):
         OK = auto()
         NOT_OK = auto()
         DIAGONAL_ERR_MIN = auto()
         DIAGONAL_ERR_MAX = auto()
         VALUE_LESS_OR_ZERO = auto()
         MH_TOO_LARGE = auto()
+        CLEARANCE_TOO_LARGE = auto()
 
-    def generate_pcb(self, width, length, diagonal, mounting_hole):
+    def generate_pcb(self, width, length, diagonal, clearance, mounting_hole):
 
         if width <= 0 or length <= 0 or diagonal <= 0:
-            return self.GenerateRetCodes.VALUE_LESS_OR_ZERO
+            return self.GeneratorRetCodes.VALUE_LESS_OR_ZERO
 
         if min(width, length) > diagonal:
-            return self.GenerateRetCodes.DIAGONAL_ERR_MIN
+            return self.GeneratorRetCodes.DIAGONAL_ERR_MIN
+
+        if min(width, length) < (clearance * 2):
+            return self.GeneratorRetCodes.CLEARANCE_TOO_LARGE
+
+        width = width - (clearance * 2)
+        length = length - (clearance * 2)
+        diagonal = diagonal - (clearance * 2)
 
         theoretical_diagonal = math.sqrt(width ** 2 + length ** 2)
         radius = (theoretical_diagonal - diagonal) / 2
 
         if radius < 0:
-            return self.GenerateRetCodes.DIAGONAL_ERR_MAX
+            return self.GeneratorRetCodes.DIAGONAL_ERR_MAX
 
         # Convert width, length, and radius to KiCad's internal units (nanometers)
         width_nm = pcbnew.FromMM(width)
@@ -43,7 +51,7 @@ class PcbGenerator:
         # Add optional mounting holes
         if mounting_hole > 0:
             if mounting_hole > radius + 1:
-                return self.GenerateRetCodes.MH_TOO_LARGE
+                return self.GeneratorRetCodes.MH_TOO_LARGE
             else:
                 hole_offset = max(mounting_hole + 2, radius)
                 holes = [[hole_offset, hole_offset], [width - hole_offset, hole_offset],
@@ -63,7 +71,7 @@ class PcbGenerator:
 
         # Refresh to update the display
         pcbnew.Refresh()
-        return self.GenerateRetCodes.OK
+        return self.GeneratorRetCodes.OK
 
     def draw_mounting_hole(self, mounting_hole, pos_x, pos_y):
 

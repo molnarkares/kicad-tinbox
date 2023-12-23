@@ -36,12 +36,14 @@ class TinboxDialog(wx.Dialog):
         self.width_txt = self.create_input_field("Width:", 1, self.unit_label)
         self.length_txt = self.create_input_field("Length:", 2, self.unit_label)
         self.diagonal_txt = self.create_input_field("Diagonal:", 3, self.unit_label)
-        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 4,
+        self.clearance_txt = self.create_input_field("Clearance:", 4,
                                                          "thou" if self.unit_label != "mm" else self.unit_label)
+        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 5,
+                                                     "thou" if self.unit_label != "mm" else self.unit_label)
 
         # Generate Button
         self.generate_btn = wx.Button(self.panel, label="Generate")
-        self.layout.Add(self.generate_btn, pos=(5, 0), span=(1, 3), flag=wx.EXPAND | wx.ALL, border=5)
+        self.layout.Add(self.generate_btn, pos=(6, 0), span=(1, 3), flag=wx.EXPAND | wx.ALL, border=5)
 
         self.panel.SetSizer(self.layout)
         self.layout.Fit(self.panel)
@@ -66,28 +68,31 @@ class TinboxDialog(wx.Dialog):
             length = float(self.length_txt.GetValue())
             diagonal = float(self.diagonal_txt.GetValue())
             mounting_hole = float(self.mounting_hole_txt.GetValue())
+            clearance = float(self.clearance_txt.GetValue())
             if self.unit_label != "mm":
                 width = width * 25.4
                 length = length * 25.4
                 diagonal = diagonal * 25.4
                 mounting_hole = mounting_hole * 0.0254
+                clearance = clearance * 0.0254
 
             pcb_generator = PcbGenerator()
 
             # Process the valid values as needed
-            result = pcb_generator.generate_pcb(width, length, diagonal, mounting_hole)
+            result = pcb_generator.generate_pcb(width, length, diagonal, clearance, mounting_hole)
 
-            if result == pcb_generator.GenerateRetCodes.VALUE_LESS_OR_ZERO:
+            if result == pcb_generator.GeneratorRetCodes.VALUE_LESS_OR_ZERO:
                 wx.MessageBox('All values must be numbers greater than zero.', 'Invalid Input', wx.OK | wx.ICON_ERROR)
                 return
-            elif result == pcb_generator.GenerateRetCodes.DIAGONAL_ERR_MAX:
+            elif result == pcb_generator.GeneratorRetCodes.DIAGONAL_ERR_MAX:
                 wx.MessageBox('Diagonal is larger than theoretical maximum', 'Invalid Input', wx.OK | wx.ICON_ERROR)
                 return
-            elif result == pcb_generator.GenerateRetCodes.DIAGONAL_ERR_MIN:
+            elif result == pcb_generator.GeneratorRetCodes.DIAGONAL_ERR_MIN:
                 wx.MessageBox('Diagonal is smaller than theoretical minimum', 'Invalid Input', wx.OK | wx.ICON_ERROR)
                 return
-            elif result == pcb_generator.GenerateRetCodes.MH_TOO_LARGE:
-                wx.MessageBox('Mounting hole is too large for default location', 'Invalid Input', wx.OK | wx.ICON_ERROR)
+            elif result == pcb_generator.GeneratorRetCodes.MH_TOO_LARGE:
+                wx.MessageBox('Mounting hole ' + str(mounting_hole) + 'mm is too large for default location',
+                              'Invalid Input', wx.OK | wx.ICON_ERROR)
                 return
 
             self.Close()
