@@ -2,6 +2,7 @@ import os
 import wx
 import pcbnew
 from .tinbox_pcbgen import PcbGenerator
+from .tinbox_mpgen import MountingPadGenerator
 
 
 def _get_image_path():
@@ -37,13 +38,22 @@ class TinboxDialog(wx.Dialog):
         self.length_txt = self.create_input_field("Length:", 2, self.unit_label)
         self.diagonal_txt = self.create_input_field("Diagonal:", 3, self.unit_label)
         self.clearance_txt = self.create_input_field("Clearance:", 4,
-                                                         "thou" if self.unit_label != "mm" else self.unit_label)
-        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 5,
                                                      "thou" if self.unit_label != "mm" else self.unit_label)
+        self.wall_thickness_txt = self.create_input_field("Wall thickness:", 5,
+                                                          "thou" if self.unit_label != "mm" else self.unit_label)
+        self.mounting_hole_txt = self.create_input_field("Hole dia.:", 6,
+                                                         "thou" if self.unit_label != "mm" else self.unit_label)
+
+        # Static text label and checkbox for "Generate Mounting pad"
+        self.generate_mounting_pad_label = wx.StaticText(self.panel, label="Generate mounting pad")
+        self.generate_mounting_pad_chk = wx.CheckBox(self.panel)
+
+        self.layout.Add(self.generate_mounting_pad_label, pos=(7, 0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=5)
+        self.layout.Add(self.generate_mounting_pad_chk, pos=(7, 1), flag=wx.ALL, border=5)
 
         # Generate Button
         self.generate_btn = wx.Button(self.panel, label="Generate")
-        self.layout.Add(self.generate_btn, pos=(6, 0), span=(1, 3), flag=wx.EXPAND | wx.ALL, border=5)
+        self.layout.Add(self.generate_btn, pos=(8, 0), span=(1, 3), flag=wx.EXPAND | wx.ALL, border=5)
 
         self.panel.SetSizer(self.layout)
         self.layout.Fit(self.panel)
@@ -69,6 +79,7 @@ class TinboxDialog(wx.Dialog):
             diagonal = float(self.diagonal_txt.GetValue())
             mounting_hole = float(self.mounting_hole_txt.GetValue())
             clearance = float(self.clearance_txt.GetValue())
+            thickness = float(self.wall_thickness_txt.GetValue())
             if self.unit_label != "mm":
                 width = width * 25.4
                 length = length * 25.4
@@ -79,7 +90,7 @@ class TinboxDialog(wx.Dialog):
             pcb_generator = PcbGenerator()
 
             # Process the valid values as needed
-            result = pcb_generator.generate_pcb(width, length, diagonal, clearance, mounting_hole)
+            result = pcb_generator.generate(width, length, diagonal, clearance, mounting_hole)
 
             if result == pcb_generator.GeneratorRetCodes.VALUE_LESS_OR_ZERO:
                 wx.MessageBox('All values must be numbers greater than zero.', 'Invalid Input', wx.OK | wx.ICON_ERROR)
@@ -94,6 +105,21 @@ class TinboxDialog(wx.Dialog):
                 wx.MessageBox('Mounting hole ' + str(mounting_hole) + 'mm is too large for default location',
                               'Invalid Input', wx.OK | wx.ICON_ERROR)
                 return
+
+            elif result == pcb_generator.GeneratorRetCodes.CLEARANCE_TOO_LARGE:
+                wx.MessageBox('Clearance value ' + str(clearance) + 'mm is larger than box size.',
+                              'Invalid Input', wx.OK | wx.ICON_ERROR)
+                return
+
+            # elif result == pcb_generator.GeneratorRetCodes.THICKNESS_TOO_LARGE:
+            #     wx.MessageBox('Thickness value ' + str(clearance) + 'mm is larger than box size.',
+            #                   'Invalid Input', wx.OK | wx.ICON_ERROR)
+            #     return
+            mh_dist = pcb_generator.get_mh_distance()
+            if self.generate_mounting_pad_chk.IsChecked() and mounting_hole > 0 and mh_dist is not None:
+                mounting_pad_generator = MountingPadGenerator()
+                mp_config = mounting_pad_generator.generate(width, length, diagonal, thickness, mounting_hole, mh_dist)
+                mounting_pad_generator.copy_openscad_model(mp_config)
 
             self.Close()
         except ValueError:

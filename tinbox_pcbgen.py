@@ -5,6 +5,7 @@ import pcbnew
 
 class PcbGenerator:
     def __init__(self):
+        self.edge_to_hole = None
         self.board = pcbnew.GetBoard()
 
     class GeneratorRetCodes(Enum):
@@ -16,9 +17,9 @@ class PcbGenerator:
         MH_TOO_LARGE = auto()
         CLEARANCE_TOO_LARGE = auto()
 
-    def generate_pcb(self, width, length, diagonal, clearance, mounting_hole):
+    def generate(self, width, length, diagonal, clearance, mounting_hole):
 
-        if width <= 0 or length <= 0 or diagonal <= 0:
+        if width <= 0 or length <= 0 or diagonal <= 0 or clearance < 0 or mounting_hole < 0:
             return self.GeneratorRetCodes.VALUE_LESS_OR_ZERO
 
         if min(width, length) > diagonal:
@@ -43,7 +44,7 @@ class PcbGenerator:
 
         # radius = diagonal
         radius_nm = pcbnew.FromMM(radius)
-        rounded_shape = self.draw_rounded_square(width_nm, length_nm, radius_nm, pcbnew.Edge_Cuts)
+        rounded_shape = self._draw_rounded_square(width_nm, length_nm, radius_nm, pcbnew.Edge_Cuts)
 
         # Add/place shape to board
         self.board.Add(rounded_shape)
@@ -58,14 +59,16 @@ class PcbGenerator:
                          [hole_offset, length - hole_offset], [width - hole_offset, length - hole_offset]]
 
                 for hole in holes:
-                    hole_shape = self.draw_mounting_hole(mounting_hole, hole[0], hole[1])
+                    hole_shape = self._draw_mounting_hole(mounting_hole, hole[0], hole[1])
                     self.board.Add(hole_shape)
+
+                self.edge_to_hole = hole_offset + clearance
 
         # Add/place silkscreen if it fits
         if length > 3 and width > 3 and radius > 1:
             clearance_nm = pcbnew.FromMM(1)
-            silk_shape = self.draw_rounded_square(width_nm - 2 * clearance_nm, length_nm - 2 * clearance_nm,
-                                                  radius_nm - clearance_nm, pcbnew.F_SilkS)
+            silk_shape = self._draw_rounded_square(width_nm - 2 * clearance_nm, length_nm - 2 * clearance_nm,
+                                                   radius_nm - clearance_nm, pcbnew.F_SilkS)
             silk_shape.Move(pcbnew.VECTOR2I(clearance_nm, clearance_nm))
             self.board.Add(silk_shape)
 
@@ -73,7 +76,7 @@ class PcbGenerator:
         pcbnew.Refresh()
         return self.GeneratorRetCodes.OK
 
-    def draw_mounting_hole(self, mounting_hole, pos_x, pos_y):
+    def _draw_mounting_hole(self, mounting_hole, pos_x, pos_y):
 
         mounting_hole_nm = pcbnew.FromMM(mounting_hole)
         pos_x_nm = pcbnew.FromMM(pos_x)
@@ -86,7 +89,7 @@ class PcbGenerator:
 
         return mh_via
 
-    def draw_rounded_square(self, width_nm, length_nm, radius_nm, layer):
+    def _draw_rounded_square(self, width_nm, length_nm, radius_nm, layer):
         error_max_nm = pcbnew.FromMM(0.01)
         # Create a polygon for the rectangle
         rect_poly = pcbnew.SHAPE_POLY_SET()
@@ -109,3 +112,6 @@ class PcbGenerator:
         rounded_shape.SetPolyShape(rounded_poly)
 
         return rounded_shape
+
+    def get_mh_distance(self):
+        return self.edge_to_hole

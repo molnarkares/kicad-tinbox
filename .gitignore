@@ -2,4 +2,5 @@
 /kicad-tinbox/
 /.venv/
 /kicad-tinbox.zip
+*cfg.scad
 
