@@ -14,13 +14,15 @@
 */
 include <mounting_pad_cfg.scad>
 
-$fn=40;
+$fn=60;
 
 height = thickness; // Height of the box
 cylinder_height = max(c_height,height);
 mountpad_radius = max(mh_drill, thickness);
-
 internal_radius = sqrt(radius^2 + thickness^2);
+
+// Additional parameter for bottom rounding
+round_radius = 1; // Radius for the rounding at the bottom
 
 mountingholes =[[mh_distance,mh_distance],
                 [mh_distance, depth-mh_distance],
@@ -33,11 +35,23 @@ difference() {
     // Outer shape of the box
     union(){
         hull() {
-            for (x=[radius, width - radius])
-                for (y=[radius, depth - radius])
-                    translate([x, y, 0])
-                        cylinder(r=radius, h=height);
+            for (x=[radius, width - radius]){
+                for (y=[radius, depth - radius]) {
+                    translate([x, y, 0]){
+                        // Rounded cylinder
+                        hull(){
+                            cylinder(h = height-round_radius, r = radius);
+                            // Adding rounded bottom edge
+                            rotate_extrude()
+                                translate([radius-round_radius, 0, 0])
+                                    circle(r = round_radius);
+                        }
+                    }
+                }
+            }
         }
+
+
         for (a = [ 0 : len(mountingholes) - 1 ]) {
             point=mountingholes[a];
             translate([point[0],point[1],0]){
