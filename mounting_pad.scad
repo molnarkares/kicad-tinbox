@@ -22,7 +22,7 @@ mountpad_radius = max(mh_drill, thickness);
 internal_radius = sqrt(radius^2 + thickness^2);
 
 // Additional parameter for bottom rounding
-round_radius = 1; // Radius for the rounding at the bottom
+round_radius = internal_radius/5; // Radius for the roundings on edges
 
 mountingholes =[[mh_distance,mh_distance],
                 [mh_distance, depth-mh_distance],
